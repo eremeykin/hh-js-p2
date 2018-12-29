@@ -64,4 +64,5 @@ const vacancyMachine = machine({
 })
 
 // Пример использования StateMachine
-vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});```
+vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
+```
