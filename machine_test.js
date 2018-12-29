@@ -1,4 +1,4 @@
-import {machine, useContext, useState} from 'my-state-machine'
+import {machine, useContext, useState} from './machine.js'
 
 const vacancyMachine = machine({ // machine — создает инстанс state machine (фабрика)
     id: 'vacancy', // У каждого может быть свой id
@@ -8,8 +8,8 @@ const vacancyMachine = machine({ // machine — создает инстанс st
         responded: {// Каждое поле — это возможное состоение
             onEntry: 'onStateEntry' // action, который нужно выполнить при входе в это состояние. Можно задавать массивом, строкой или функцией
         },
-        notResponded: { // action, который нужно выполнить при выходе из этого состояния. Можно задавать массивом, строкой или функцией
-            onExit() {
+        notResponded: {
+            onExit() {// action, который нужно выполнить при выходе из этого состояния. Можно задавать массивом, строкой или функцией
                 console.log('we are leaving notResponded state');
             },
             on: { // Блок описания транзакций
@@ -34,13 +34,14 @@ const vacancyMachine = machine({ // machine — создает инстанс st
             const [state] = useState();
             console.log('now state is ' + state);
         },
-        /*makeResponse: (event) => {
-        // both sync and async actions
-        const [contex, setContext] = useContext()
-        window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id} })
-        }*/
+        makeResponse: (event) => {
+            // both sync and async actions
+            const [contex, setContext] = useContext();
+            window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id}})
+        }
     }
 });
 
 // Пример использования StateMachine
+console.log(vacancyMachine);
 vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
