@@ -1,6 +1,6 @@
 import {machine, useContext, useState} from './machine.js'
 
-const vacancyMachine = machine({ // machine — создает инстанс state machine (фабрика)
+let machineInfo = { // machine — создает инстанс state machine (фабрика)
     id: 'vacancy', // У каждого может быть свой id
     initialState: 'notResponded', // начальное состояние
     context: {id: 123}, // дополнительный контекст (payload)
@@ -15,10 +15,17 @@ const vacancyMachine = machine({ // machine — создает инстанс st
             on: { // Блок описания транзакций
                 RESPOND: { // Транзакция
                     service: (event) => { // упрощенный сервис, вызываем при транзакции
-                        const [contex, setContext] = useContext(); // Позволяет получить текущий контекст и изменить его
+                        const [context, setContext] = useContext(); // Позволяет получить текущий контекст и изменить его
                         const [state, setState] = useState(); // Позволяет получить текущий стейт и изменить его
                         // Поддерживаются асинхронные действия
-                        window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id}}).then(() => {
+                        window.fetch('http://localhost:8080/test/resume', {
+                            method: 'post',
+                            headers: {
+                                'Accept': 'application/json, text/plain, */*',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({resume: event.resume, vacancyId: context.id})
+                        }).then(() => {
                             setState('responded'); // меняем состояние
                             setContext({completed: true}); // Мержим контекст {id: 123, comleted: true}
                         });
@@ -40,8 +47,8 @@ const vacancyMachine = machine({ // machine — создает инстанс st
             window.fetch({method: 'post', data: {resume: event.resume, vacancyId: context.id}})
         }
     }
-});
+};
 
-// Пример использования StateMachine
-console.log(vacancyMachine);
+const vacancyMachine = machine(machineInfo);
+
 vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
