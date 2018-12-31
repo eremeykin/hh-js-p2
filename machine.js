@@ -15,7 +15,17 @@ class StateMachine {
             if (state.hasOwnProperty('on')) {
                 for (let transitionsName in state.on) {
                     if (state.on.hasOwnProperty(transitionsName)) {
-                        let transitionAction = state.on[transitionsName].service;
+                        let transitionAction;
+                        if (state.on[transitionsName].hasOwnProperty('service')) {
+                            transitionAction = state.on[transitionsName].service;
+                        } else if (state.on[transitionsName].hasOwnProperty('target')) {
+                            transitionAction = () => {
+                                const [st, setState] = useState();
+                                setState(state.on[transitionsName].target);
+                            }
+                        } else{
+                            throw new Error("A transition has no service or target property.")
+                        }
                         transitions[transitionsName] = new Action(this, transitionAction);
                     }
                 }
@@ -28,20 +38,17 @@ class StateMachine {
                 this.currentState = newState;
             }
             this.states[stateName] = newState;
-
             this.actionFunctions = machineInfo.actions;
         }
 
         if (typeof this.currentState === 'undefined') {
-            throw new Error("Initial context is undefined for given machine:" + machineInfo.toSource())
+            throw new Error("Initial state is undefined for given machine:" + machineInfo.toSource())
         }
     }
 
     transition(transitionName, event) {
         if (this.currentState.transitions.hasOwnProperty(transitionName)) {
-            this.inThisMachine(() => {
-                this.currentState.transitions[transitionName].invokeWithEvent(event);
-            });
+            this.currentState.transitions[transitionName].invoke(event);
         }
         else {
             throw new Error("Unknown transition: " + transitionName);
@@ -68,36 +75,31 @@ class State {
 
 class Action {
     constructor(stateMachine, actionObject) {
-        this.actionObject = actionObject;
+        this.actionObject = actionObject; // string, function or array of actionObject
         this.stateMachine = stateMachine;
     }
 
-    invokeWithEvent(event) {
-        this.event = event;
-        this.invoke();
-        delete this.event;
+    invoke(event) {
+        this.recursiveInvoke(event, this.actionObject);
     }
 
-    invoke(actionObject) {
-        if (arguments.length === 0) {
-            actionObject = this.actionObject;
-        }
+    recursiveInvoke(event, actionObject) {
         if (typeof actionObject === 'undefined') {
             // do nothing, empty action
         } else if (Array.isArray(actionObject)) {
             for (let i = 0; i < actionObject.length; i++) {
-                this.invoke(actionObject[i]);
+                this.recursiveInvoke(event, actionObject[i]);
             }
         } else if (typeof actionObject === 'string') {
             if (typeof (this.stateMachine.actionFunctions) === 'undefined'
                 || !this.stateMachine.actionFunctions.hasOwnProperty(actionObject)) {
                 throw new Error("Can't find such action: [" + actionObject + "] in state machine: " + this.stateMachine.actionFunctions.toSource());
             }
-            this.stateMachine.inThisMachine(() => {
-                this.stateMachine.actionFunctions[actionObject]()
-            });
+            this.recursiveInvoke(event, this.stateMachine.actionFunctions[actionObject]);
         } else if (typeof actionObject === 'function') {
-            actionObject(this.event);
+            this.stateMachine.inThisMachine(() => {
+                actionObject(event);
+            });
         } else {
             throw new Error("An action can be a string, function or an array of actions only, but was:" + actionObject.toSource());
         }
@@ -117,7 +119,7 @@ export function useContext() {
         throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
     let setContext = function (newContext) {
-        innerMachine.context = {...this.context, ...newContext}; //merge content
+        innerMachine.context = {...innerMachine.context, ...newContext}; //merge content
     };
     return [innerMachine.context, setContext];
 }
