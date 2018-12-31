@@ -23,7 +23,7 @@ class StateMachine {
                                 const [st, setState] = useState();
                                 setState(state.on[transitionsName].target);
                             }
-                        } else{
+                        } else {
                             throw new Error("A transition has no service or target property.")
                         }
                         transitions[transitionsName] = new Action(this, transitionAction);
@@ -143,4 +143,9 @@ export function useState() {
         }
     };
     return [innerMachine.currentState.name, setState];
+}
+
+export function assert(check, msg) {
+    if (check) return;
+    throw new Error(msg || "Assertion failed!");
 }
