@@ -14,7 +14,8 @@ let machineInfo = { // machine — создает инстанс state machine (
             },
             on: { // Блок описания транзакций
                 RESPOND: { // Транзакция
-                    service: (event) => { // упрощенный сервис, вызываем при транзакции
+                    service: (event) => {
+                        // упрощенный сервис, вызываем при транзакции
                         const [context, setContext] = useContext(); // Позволяет получить текущий контекст и изменить его
                         const [state, setState] = useState(); // Позволяет получить текущий стейт и изменить его
                         // Поддерживаются асинхронные действия
@@ -50,5 +51,6 @@ let machineInfo = { // machine — создает инстанс state machine (
 };
 
 const vacancyMachine = machine(machineInfo);
-
 vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
+
+

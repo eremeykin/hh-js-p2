@@ -5,111 +5,102 @@ class StateMachine {
     constructor(machineInfo) {
         this.id = machineInfo.id;
         this.states = {};
+        this.context = {...machineInfo.context};
         for (let stateName in machineInfo.states) {
             if (!machineInfo.states.hasOwnProperty(stateName)) {
                 continue;
             }
             let state = machineInfo.states[stateName];
-            let transactions = {};
+            let transitions = {};
             if (state.hasOwnProperty('on')) {
-                for (let transactionName in state.on) {
-                    if (state.on.hasOwnProperty(transactionName)) {
-                        let transaction = state.on[transactionName];
-                        transactions[transactionName] = new Transaction(transaction.service);
+                for (let transitionsName in state.on) {
+                    if (state.on.hasOwnProperty(transitionsName)) {
+                        let transitionAction = state.on[transitionsName].service;
+                        transitions[transitionsName] = new Action(this, transitionAction);
                     }
                 }
             }
-            let newState = new State(stateName, state.onEntry, state.onExit, transactions);
+            let onEntryAction = new Action(this, state.onEntry);
+            let onExitAction = new Action(this, state.onExit);
+            let newState = new State(stateName, onEntryAction, onExitAction, transitions);
+
             if (stateName === machineInfo.initialState) {
                 this.currentState = newState;
             }
             this.states[stateName] = newState;
 
+            this.actionFunctions = machineInfo.actions;
         }
-        if (this.currentState === undefined) {
+
+        if (typeof this.currentState === 'undefined') {
             throw new Error("Initial context is undefined for given machine:" + machineInfo.toSource())
         }
-        this.currentContext = new Context(machineInfo.context);
     }
 
-    transition(transactionName, event) {
-        this.inMachine(() => {
-            let oldState = this.currentState;
-            oldState.onExit();
-            let transaction = oldState.transactions[transactionName];
-            transaction.service(event)
-        });
+    transition(transitionName, event) {
+        if (this.currentState.transitions.hasOwnProperty(transitionName)) {
+            this.inThisMachine(() => {
+                this.currentState.transitions[transitionName].invokeWithEvent(event);
+            });
+        }
+        else {
+            throw new Error("Unknown transition: " + transitionName);
+        }
     }
 
-    inMachine(callback) {
+    inThisMachine(callback) {
         thisMachine = this;
         callback();
         thisMachine = null;
     }
 
-    getContext() {
-        return this.currentContext.content;
-    }
-
-    setContext(newContext) {
-        this.currentContext.addContent(newContext);
-    }
-
-    getState() {
-        return this.currentState.name;
-    }
-
-    setState(newStateName) {
-        if (!this.states.hasOwnProperty(newStateName)) {
-            throw new Error("Unknown machine state:" + newStateName);
-        }
-        this.currentState = this.states[newStateName]
-    }
 }
 
 class State {
 
-    constructor(name, onEntry, onExit, transactions) {
+    constructor(name, onEntryAction, onExitAction, transitions) {
         this.name = name;
-        this.onEntryCallback = onEntry;
-        this.onExitCallback = onExit;
-        this.transactions = transactions;
-    }
-
-    onExit() {
-        this.onExitCallback();
-    }
-
-    onEntry() {
-        this.onEntryCallback();
-    }
-
-    toString() {
-        return "State:" + name;
-    }
-
-}
-
-class Transaction {
-    constructor(service) {
-        this.service = service;
-    }
-}
-
-class Context {
-    constructor(content) {
-        this.content = content;
-    }
-
-    addContent(newContent) {
-        this.content = {...this.content, ...newContent};//merge content
+        this.onEntryAction = onEntryAction;
+        this.onExitAction = onExitAction;
+        this.transitions = transitions;
     }
 }
 
 class Action {
-    constructor(name, funct) {
-        this.funct = funct;
-        this.name = name;
+    constructor(stateMachine, actionObject) {
+        this.actionObject = actionObject;
+        this.stateMachine = stateMachine;
+    }
+
+    invokeWithEvent(event) {
+        this.event = event;
+        this.invoke();
+        delete this.event;
+    }
+
+    invoke(actionObject) {
+        if (arguments.length === 0) {
+            actionObject = this.actionObject;
+        }
+        if (typeof actionObject === 'undefined') {
+            // do nothing, empty action
+        } else if (Array.isArray(actionObject)) {
+            for (let i = 0; i < actionObject.length; i++) {
+                this.invoke(actionObject[i]);
+            }
+        } else if (typeof actionObject === 'string') {
+            if (typeof (this.stateMachine.actionFunctions) === 'undefined'
+                || !this.stateMachine.actionFunctions.hasOwnProperty(actionObject)) {
+                throw new Error("Can't find such action: [" + actionObject + "] in state machine: " + this.stateMachine.actionFunctions.toSource());
+            }
+            this.stateMachine.inThisMachine(() => {
+                this.stateMachine.actionFunctions[actionObject]()
+            });
+        } else if (typeof actionObject === 'function') {
+            actionObject(this.event);
+        } else {
+            throw new Error("An action can be a string, function or an array of actions only, but was:" + actionObject.toSource());
+        }
     }
 }
 
@@ -121,17 +112,33 @@ export function machine(description) {
 }
 
 export function useContext() {
-    if (thisMachine == null) {
-        throw new Error("Method useContext() was invoked from outside the instantiated state machine");
+    let innerMachine = thisMachine;
+    if (innerMachine == null) {
+        throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
-    let result = [thisMachine.getContext(), thisMachine.setContext];
-    console.log(result);
-    return result;
+    let setContext = function (newContext) {
+        innerMachine.context = {...this.context, ...newContext}; //merge content
+    };
+    return [innerMachine.context, setContext];
 }
 
 export function useState() {
-    if (thisMachine == null) {
+    let innerMachine = thisMachine;
+    if (innerMachine == null) {
         throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
-    return [thisMachine.getState(), thisMachine.setState];
+
+    let setState = function (newStateName) {
+        innerMachine.currentState.onExitAction.invoke(); // old state onExit
+        if (!innerMachine.states.hasOwnProperty(newStateName)) {
+            throw new Error("Unknown machine state:" + newStateName);
+        }
+        innerMachine.currentState = innerMachine.states[newStateName]; // set new state
+        try {
+            innerMachine.currentState.onEntryAction.invoke(); // new state onEntry
+        } catch (e) {
+            console.log(e);
+        }
+    };
+    return [innerMachine.currentState.name, setState];
 }
