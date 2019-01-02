@@ -19,17 +19,10 @@ let machineInfo = {
                     service: (event) => {
                         const [context, setContext] = useContext();
                         const [state, setState] = useState();
-                        window.fetch('http://localhost:8080/test/resume', {
-                            method: 'post',
-                            headers: {
-                                'Accept': 'application/json, text/plain, */*',
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({resume: event.resume, vacancyId: context.id})
-                        }).then(() => {
+                        setTimeout(() => {
                             setState('responded');
                             setContext({completed: true});
-                        });
+                        }, 400);
                     }
                 }
             }
@@ -49,7 +42,7 @@ vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'
 setTimeout(check, 500);
 
 function check() {
-    assert(vacancyMachine.context.id ===  123);
+    assert(vacancyMachine.context.id === 123);
     assert(vacancyMachine.context.completed);
     assert(log[0] === "we are leaving notResponded state");
     assert(log[1] === "now state is responded");
