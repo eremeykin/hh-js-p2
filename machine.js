@@ -114,7 +114,7 @@ export function machine(description) {
 export function useContext() {
     let innerMachine = thisMachine;
     if (innerMachine == null) {
-        throw new Error("Method useState() was invoked from outside the instantiated state machine");
+        throw new Error("Method useContext() was invoked from outside the instantiated state machine");
     }
     let setContext = function (newContext) {
         innerMachine.context = {...innerMachine.context, ...newContext}; //merge content
