@@ -108,7 +108,6 @@ class Action {
 
 export function machine(description) {
     let m = new StateMachine(description);
-    console.log(m);
     return m;
 
 }
