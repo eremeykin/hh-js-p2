@@ -107,8 +107,7 @@ class Action {
 }
 
 export function machine(description) {
-    let m = new StateMachine(description);
-    return m;
+    return new StateMachine(description);
 
 }
 
