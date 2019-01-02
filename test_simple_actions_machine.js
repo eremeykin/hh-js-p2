@@ -55,7 +55,6 @@ function check1() {
     assert(log[0] === "RESPOND transaction from notResponded");
     assert(log[1] === "exit state notResponded");
     assert(log[2] === "entry to state responded");
-    console.log("simple action test ok");
 
     try {
         vacancyMachine.transition('RESPOND');
@@ -68,7 +67,6 @@ function check1() {
     setTimeout(check2, 500);
 
     function check2() {
-        console.log(log);
         assert(log[3] === "UNRESPOND transaction from responded");
         assert(log[4] === "exit state responded");
         assert(log[5] === "entry to state notResponded");
