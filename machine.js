@@ -1,4 +1,5 @@
 let thisMachine = null;
+let thisEvent = null;
 
 class StateMachine {
 
@@ -47,12 +48,10 @@ class StateMachine {
     }
 
     transition(transitionName, event) {
-        if (this.currentState.transitions.hasOwnProperty(transitionName)) {
-            this.currentState.transitions[transitionName].invoke(event);
-        }
-        else {
+        if (!this.currentState.transitions.hasOwnProperty(transitionName)) {
             throw new Error("Unknown transition: " + transitionName);
         }
+        this.currentState.transitions[transitionName].invoke(event);
     }
 
     inThisMachine(callback) {
@@ -98,11 +97,19 @@ class Action {
             this.recursiveInvoke(event, this.stateMachine.actionFunctions[actionObject]);
         } else if (typeof actionObject === 'function') {
             this.stateMachine.inThisMachine(() => {
-                actionObject(event);
+                Action.withEvent(() => {
+                    actionObject(event);
+                }, event);
             });
         } else {
             throw new Error("An action can be a string, function or an array of actions only, but was:" + actionObject.toSource());
         }
+    }
+
+    static withEvent(callback, event) {
+        thisEvent = event;
+        callback();
+        thisEvent = null;
     }
 }
 
@@ -124,18 +131,19 @@ export function useContext() {
 
 export function useState() {
     let innerMachine = thisMachine;
-    if (innerMachine == null) {
+    let innerEvent = thisEvent;
+    if (innerMachine == null || thisEvent == null) {
         throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
 
     let setState = function (newStateName) {
-        innerMachine.currentState.onExitAction.invoke(); // old state onExit
+        innerMachine.currentState.onExitAction.invoke(innerEvent); // old state onExit
         if (!innerMachine.states.hasOwnProperty(newStateName)) {
             throw new Error("Unknown machine state:" + newStateName);
         }
         innerMachine.currentState = innerMachine.states[newStateName]; // set new state
         try {
-            innerMachine.currentState.onEntryAction.invoke(); // new state onEntry
+            innerMachine.currentState.onEntryAction.invoke(innerEvent); // new state onEntry
         } catch (e) {
             console.log(e);
         }

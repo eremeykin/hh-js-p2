@@ -36,19 +36,19 @@ let machineInfo = {
             log.push('now state is ' + state);
         },
         myCustomAction1: (event) => {
-            log.push('my custom action 1');
+            log.push('my custom action 1, ' + event.resume.name);
         },
         myCustomAction2: (event) => {
-            log.push('my custom action 2');
+            log.push('my custom action 2, ' + event.resume.name);
         },
         myExitFunction: (event) => {
-            log.push('my exit function');
+            log.push('my exit function, ' + event.resume.name);
         },
-        inArray1: () => {
-            log.push('inArray1');
+        inArray1: (event) => {
+            log.push('inArray1, ' + event.resume.name);
         },
-        inArray2: () => {
-            log.push('inArray2');
+        inArray2: (event) => {
+            log.push('inArray2, ' + event.resume.name);
         }
     }
 };
@@ -60,12 +60,12 @@ setTimeout(check, 510);
 
 function check() {
     assert(log[0] === "we are leaving notResponded state");
-    assert(log[1] === "my exit function");
+    assert(log[1] === "my exit function, Vasya");
     assert(log[2] === "now state is responded");
-    assert(log[3] === "my custom action 1");
-    assert(log[4] === "my custom action 2");
-    assert(log[5] === "inArray1");
-    assert(log[6] === "inArray2");
+    assert(log[3] === "my custom action 1, Vasya");
+    assert(log[4] === "my custom action 2, Vasya");
+    assert(log[5] === "inArray1, Vasya");
+    assert(log[6] === "inArray2, Vasya");
     assert(log[7] === "function in Array");
     console.log("action test ok");
 }
