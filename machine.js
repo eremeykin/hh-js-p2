@@ -6,7 +6,7 @@ class StateMachine {
     constructor(machineInfo) {
         this.id = machineInfo.id;
         this.states = {};
-        this.context = {...machineInfo.context};
+        this.context = machineInfo.context;
         for (let stateName in machineInfo.states) {
             if (!machineInfo.states.hasOwnProperty(stateName)) {
                 continue;
@@ -15,24 +15,25 @@ class StateMachine {
             let transitions = {};
             if (state.hasOwnProperty('on')) {
                 for (let transitionsName in state.on) {
-                    if (state.on.hasOwnProperty(transitionsName)) {
-                        let transitionAction;
-                        if (state.on[transitionsName].hasOwnProperty('service')) {
-                            transitionAction = state.on[transitionsName].service;
-                        } else if (state.on[transitionsName].hasOwnProperty('target')) {
-                            transitionAction = () => {
-                                const [st, setState] = useState();
-                                setState(state.on[transitionsName].target);
-                            }
-                        } else {
-                            throw new Error("A transition has no service or target property.")
-                        }
-                        transitions[transitionsName] = new Action(this, transitionAction);
+                    if (!state.on.hasOwnProperty(transitionsName)) {
+                        continue;
                     }
+                    let transitionAction;
+                    if (state.on[transitionsName].hasOwnProperty('service')) {
+                        transitionAction = state.on[transitionsName].service;
+                    } else if (state.on[transitionsName].hasOwnProperty('target')) {
+                        transitionAction = () => {
+                            const [st, setState] = useState();
+                            setState(state.on[transitionsName].target);
+                        }
+                    } else {
+                        throw new Error("Transition '" + transitionsName + "' has no service or target property in the machine with id:" + this.id);
+                    }
+                    transitions[transitionsName] = new Action(this, transitionAction);
                 }
             }
-            let onEntryAction = new Action(this, state.onEntry);
-            let onExitAction = new Action(this, state.onExit);
+            let onEntryAction = new Action(this, state.onEntry /*may be undefined*/);
+            let onExitAction = new Action(this, state.onExit /*may be undefined*/);
             let newState = new State(stateName, onEntryAction, onExitAction, transitions);
 
             if (stateName === machineInfo.initialState) {
@@ -43,13 +44,13 @@ class StateMachine {
         }
 
         if (typeof this.currentState === 'undefined') {
-            throw new Error("Initial state is undefined for given machine:" + machineInfo.toSource())
+            throw new Error("Initial state is undefined for given machine with id:" + this.id);
         }
     }
 
     transition(transitionName, event) {
         if (!this.currentState.transitions.hasOwnProperty(transitionName)) {
-            throw new Error("Unknown transition: " + transitionName);
+            throw new Error("Unknown transition: '" + transitionName + "' in the machine with id: " + this.id);
         }
         this.currentState.transitions[transitionName].invoke(event);
     }
@@ -92,7 +93,7 @@ class Action {
         } else if (typeof actionObject === 'string') {
             if (typeof (this.stateMachine.actionFunctions) === 'undefined'
                 || !this.stateMachine.actionFunctions.hasOwnProperty(actionObject)) {
-                throw new Error("Can't find such action: [" + actionObject + "] in state machine: " + this.stateMachine.actionFunctions.toSource());
+                throw new Error("Can't find such action: [" + actionObject + "] in the machine with id: " + this.stateMachine.id);
             }
             this.recursiveInvoke(event, this.stateMachine.actionFunctions[actionObject]);
         } else if (typeof actionObject === 'function') {
@@ -115,7 +116,6 @@ class Action {
 
 export function machine(description) {
     return new StateMachine(description);
-
 }
 
 export function useContext() {
@@ -142,11 +142,7 @@ export function useState() {
             throw new Error("Unknown machine state:" + newStateName);
         }
         innerMachine.currentState = innerMachine.states[newStateName]; // set new state
-        try {
-            innerMachine.currentState.onEntryAction.invoke(innerEvent); // new state onEntry
-        } catch (e) {
-            console.log(e);
-        }
+        innerMachine.currentState.onEntryAction.invoke(innerEvent); // new state onEntry
     };
     return [innerMachine.currentState.name, setState];
 }

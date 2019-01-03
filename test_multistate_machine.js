@@ -49,7 +49,7 @@ const vacancyMachine = machine(machineInfo);
 try {
     vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: RESPOND');
+    assert(e.toString() === 'Error: Unknown transition: \'RESPOND\' in the machine with id: vacancy');
 }
 
 assert(vacancyMachine.currentState.name === 'state1');// initial state
@@ -59,13 +59,13 @@ assert(vacancyMachine.currentState.name === 'state3');
 try {
     vacancyMachine.transition('ST3', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: ST3');
+    assert(e.toString() === 'Error: Unknown transition: \'ST3\' in the machine with id: vacancy');
 }
 
 try {
     vacancyMachine.transition('state2', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: state2');
+    assert(e.toString() === 'Error: Unknown transition: \'state2\' in the machine with id: vacancy');
 }
 
 vacancyMachine.transition('ST2', {resume: {name: 'Vasya', lastName: 'Pupkin'}});

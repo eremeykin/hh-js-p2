@@ -59,7 +59,7 @@ function check1() {
     try {
         vacancyMachine.transition('RESPOND');
     } catch (e) {
-        assert(e.toString() === "Error: Unknown transition: RESPOND");
+        assert(e.toString() === "Error: Unknown transition: 'RESPOND' in the machine with id: vacancy");
     }
 
     vacancyMachine.transition('UNRESPOND', {});
