@@ -34,7 +34,12 @@ class StateMachine {
             }
             let onEntryAction = new Action(this, state.onEntry /*may be undefined*/);
             let onExitAction = new Action(this, state.onExit /*may be undefined*/);
-            let newState = new State(stateName, onEntryAction, onExitAction, transitions);
+            let newState = {
+                name: stateName,
+                onEntryAction: onEntryAction,
+                onExitAction: onExitAction,
+                transitions: transitions
+            };
 
             if (stateName === machineInfo.initialState) {
                 this.currentState = newState;
@@ -61,16 +66,6 @@ class StateMachine {
         thisMachine = null;
     }
 
-}
-
-class State {
-
-    constructor(name, onEntryAction, onExitAction, transitions) {
-        this.name = name;
-        this.onEntryAction = onEntryAction;
-        this.onExitAction = onExitAction;
-        this.transitions = transitions;
-    }
 }
 
 class Action {
