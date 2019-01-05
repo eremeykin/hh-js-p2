@@ -1,5 +1,5 @@
-let thisMachine = null;
-let thisEvent = null;
+let thisMachine = [];
+let thisEvent = [];
 
 class StateMachine {
 
@@ -44,15 +44,15 @@ class StateMachine {
     }
 
     inThisMachine(callback) {
-        thisMachine = this;
+        thisMachine.push(this);
         callback();
-        thisMachine = null;
+        thisMachine.pop();
     }
 
     withEvent(callback, event) {
-        thisEvent = event;
+        thisEvent.push(event);
         callback();
-        thisEvent = null;
+        thisEvent.pop();
     }
 }
 
@@ -61,7 +61,7 @@ export function machine(description) {
 }
 
 export function useContext() {
-    let innerMachine = thisMachine;
+    let innerMachine = thisMachine[thisMachine.length - 1];
     if (innerMachine == null) {
         throw new Error("Method useContext() was invoked from outside the instantiated state machine");
     }
@@ -72,8 +72,8 @@ export function useContext() {
 }
 
 export function useState() {
-    let innerMachine = thisMachine;
-    let innerEvent = thisEvent;
+    let innerMachine = thisMachine[thisMachine.length - 1];
+    let innerEvent = thisEvent[thisEvent.length - 1];
     if (innerMachine == null || thisEvent == null) {
         throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
@@ -84,7 +84,6 @@ export function useState() {
         innerMachine.currentStateName = newStateName; // set new state
         let onEntry = innerMachine.machineInfo.states[innerMachine.currentStateName].onEntry;
         innerMachine.recursiveInvoke(innerEvent, onEntry);
-
     };
     return [innerMachine.currentStateName, setState];
 }
