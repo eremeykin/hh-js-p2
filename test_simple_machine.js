@@ -42,10 +42,10 @@ vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'
 setTimeout(check, 500);
 
 function check() {
-    assert(vacancyMachine.context.id === 123);
-    assert(vacancyMachine.context.completed);
+    assert(vacancyMachine.machineInfo.context.id === 123);
+    assert(vacancyMachine.machineInfo.context.completed);
     assert(log[0] === "we are leaving notResponded state");
     assert(log[1] === "now state is responded");
-    assert(vacancyMachine.currentState.name === "responded");
+    assert(vacancyMachine.currentStateName === "responded");
     console.log("simple test ok");
 }

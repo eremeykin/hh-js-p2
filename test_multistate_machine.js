@@ -49,27 +49,27 @@ const vacancyMachine = machine(machineInfo);
 try {
     vacancyMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: \'RESPOND\' in the machine with id: vacancy');
+    assert(e.toString() === 'TypeError: transition is undefined');
 }
 
-assert(vacancyMachine.currentState.name === 'state1');// initial state
+assert(vacancyMachine.currentStateName === 'state1');// initial state
 vacancyMachine.transition('ST3', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
-assert(vacancyMachine.currentState.name === 'state3');
+assert(vacancyMachine.currentStateName === 'state3');
 
 try {
     vacancyMachine.transition('ST3', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: \'ST3\' in the machine with id: vacancy');
+    assert(e.toString() === 'TypeError: transition is undefined');
 }
 
 try {
     vacancyMachine.transition('state2', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
 } catch (e) {
-    assert(e.toString() === 'Error: Unknown transition: \'state2\' in the machine with id: vacancy');
+    assert(e.toString() === 'TypeError: transition is undefined');
 }
 
 vacancyMachine.transition('ST2', {resume: {name: 'Vasya', lastName: 'Pupkin'}});
-assert(vacancyMachine.currentState.name === 'state2');
+assert(vacancyMachine.currentStateName === 'state2');
 assert(log[0] === "exit: state1");
 assert(log[1] === "entry: state3");
 assert(log[2] === "exit: state3");
