@@ -116,12 +116,12 @@ secondMachine.transition('RESPOND', {resume: {name: 'Vasya', lastName: 'Pupkin'}
 setTimeout(check1, 2500);
 
 function check1() {
-    console.log(log);
     assert(log[0] === "100 RESPOND transaction from notResponded");
     assert(log[1] === "200 RESPOND transaction from notResponded");
-    assert(log[2] === "100 exit state notResponded");
-    assert(log[3] === "100 entry to state responded");
-    assert(log[4] === "200 exit state notResponded");
-    assert(log[5] === "200 entry to state responded");
+    assert(log[2] === "200 exit state notResponded");
+    assert(log[3] === "200 entry to state responded");
+    assert(log[4] === "100 exit state notResponded");
+    assert(log[5] === "100 entry to state responded");
+
     console.log("two nested machines test ok");
 }

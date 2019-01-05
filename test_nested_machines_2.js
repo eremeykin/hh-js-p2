@@ -12,6 +12,7 @@ const myMachine = machine({
                     service: () => {
                         myMachine2.transition('go');
                         // Здесь будет выведено { b: 'Machine2 data' } и работа будет с myMachine2, хотя функция внутри myMachine
+                        console.log("going to use machine1 context");
                         log.push(useContext()[0]);
                     },
                 },
@@ -39,4 +40,5 @@ const myMachine2 = machine({
 
 myMachine.transition('go');
 assert(log[0].b === 'Machine2 data');
-assert(log[0].b === 'myData');
+assert(log[1].b === 'myData');
+console.log('nested machines 2 test ok');
