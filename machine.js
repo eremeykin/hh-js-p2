@@ -1,58 +1,32 @@
-let thisMachine = [];
-let thisEvent = [];
+let stack = [];
 
 class StateMachine {
 
-    constructor(machineInfo) {
-        this.machineInfo = machineInfo;
-        this.currentStateName = machineInfo.initialState;
+    constructor(description) {
+        this.machineInfo = description;
+        this.currentStateName = description.initialState;
     }
 
-    recursiveInvoke(event, actionObject /* string, function or array of actionObject*/) {
+    recursiveInvoke(event, actionObject) {
         if (Array.isArray(actionObject)) {
             for (let i = 0; i < actionObject.length; i++) {
                 this.recursiveInvoke(event, actionObject[i]);
             }
         } else if (typeof actionObject === 'string') {
-            let actions = this.machineInfo.actions;
-            if (typeof (actions) === 'undefined'
-                || !actions.hasOwnProperty(actionObject)) {
-                throw new Error("Can't find such action: " + actionObject);
-            }
-            this.recursiveInvoke(event, actions[actionObject]);
+            this.recursiveInvoke(event, this.machineInfo.actions[actionObject]);
         } else if (typeof actionObject === 'function') {
-            this.inThisMachine(() => {
-                this.withEvent(() => {
-                    actionObject(event);
-                }, event);
-            });
+            stack.push({machine: this, event: event});
+            actionObject(event);
+            stack.pop();
         }
     }
 
     transition(transitionName, event) {
         let transition = this.machineInfo.states[this.currentStateName].on[transitionName];
-        if (transition.hasOwnProperty('service')) {
-            this.recursiveInvoke(event, transition.service);
-        } else if (transition.hasOwnProperty('target')) {
-            this.recursiveInvoke(event, () => {
-                const [st, setState] = useState();
-                setState(transition.target);
-            });
-        } else {
-            throw new Error("Transition without service or target: '" + transitionName);
-        }
-    }
-
-    inThisMachine(callback) {
-        thisMachine.push(this);
-        callback();
-        thisMachine.pop();
-    }
-
-    withEvent(callback, event) {
-        thisEvent.push(event);
-        callback();
-        thisEvent.pop();
+        this.recursiveInvoke(event, transition.service || (() => {
+            const [st, setState] = useState();
+            setState(transition.target);
+        }));
     }
 }
 
@@ -61,31 +35,31 @@ export function machine(description) {
 }
 
 export function useContext() {
-    let innerMachine = thisMachine[thisMachine.length - 1];
-    if (innerMachine == null) {
+    let {machine, event} = {...stack[stack.length - 1]};
+    if (!machine) {
         throw new Error("Method useContext() was invoked from outside the instantiated state machine");
     }
+
     let setContext = function (newContext) {
-        innerMachine.machineInfo.context = {...innerMachine.machineInfo.context, ...newContext}; //merge content
+        machine.machineInfo.context = {...machine.machineInfo.context, ...newContext}; //merge content
     };
-    return [innerMachine.machineInfo.context, setContext];
+    return [machine.machineInfo.context, setContext];
 }
 
 export function useState() {
-    let innerMachine = thisMachine[thisMachine.length - 1];
-    let innerEvent = thisEvent[thisEvent.length - 1];
-    if (innerMachine == null || thisEvent == null) {
+    let {machine, event} = {...stack[stack.length - 1]};
+    if (!machine) {
         throw new Error("Method useState() was invoked from outside the instantiated state machine");
     }
 
     let setState = function (newStateName) {
-        let onExit = innerMachine.machineInfo.states[innerMachine.currentStateName].onExit;
-        innerMachine.recursiveInvoke(innerEvent, onExit);
-        innerMachine.currentStateName = newStateName; // set new state
-        let onEntry = innerMachine.machineInfo.states[innerMachine.currentStateName].onEntry;
-        innerMachine.recursiveInvoke(innerEvent, onEntry);
+        let onExit = machine.machineInfo.states[machine.currentStateName].onExit;
+        machine.recursiveInvoke(event, onExit);
+        machine.currentStateName = newStateName; // set new state
+        let onEntry = machine.machineInfo.states[machine.currentStateName].onEntry;
+        machine.recursiveInvoke(event, onEntry);
     };
-    return [innerMachine.currentStateName, setState];
+    return [machine.currentStateName, setState];
 }
 
 export function assert(check, msg) {
